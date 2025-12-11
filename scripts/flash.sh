@@ -15,7 +15,9 @@ function check_elf() {
 }
 
 function flash() {
-    avrdude -p "${ARCH}" -c "${PROGRAMMER}" -P "${SERIAL}" -U "${MEMTYPE}:w:${ELF}:e"
+    # Extract AVR part name from ARCH (e.g., avr-unknown-gnu-atmega328 -> m328p)
+    AVR_PART="${AVR_PART:-m328p}"
+    avrdude -C ./avrdude.conf -p "${AVR_PART}" -c "${PROGRAMMER}" -P "${SERIAL}" -U "${MEMTYPE}:w:${ELF}:e"
 }
 
 ###
