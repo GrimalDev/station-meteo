@@ -11,10 +11,10 @@ pub extern fn main() {
     loop {
         port::B5::set_high();
 
-        ruduino::delay::delay_ms(1000);
+        ruduino::delay::delay_ms(200);
 
         port::B5::set_low();
 
-        ruduino::delay::delay_ms(1000);
+        ruduino::delay::delay_ms(200);
     }
 }
