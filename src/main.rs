@@ -7,15 +7,34 @@ use arduino_hal::spi;
 use cc1101::lowlevel;
 use embedded_hal_bus::spi::ExclusiveDevice;
 
+// ============================================================================
+// CONFIGURATION - Edit these values to match your setup
+// ============================================================================
+
+struct Config {
+    radio: RadioConfig,
+    serial_baud: u32,
+    tx_interval_ms: u32,
+}
+
 struct RadioConfig {
     frequency_mhz: f32,
 }
 
-impl RadioConfig {
-    const fn new(frequency_mhz: f32) -> Self {
-        Self { frequency_mhz }
-    }
+const CONFIG: Config = Config {
+    radio: RadioConfig {
+        // Supported bands: 300-348 MHz, 387-464 MHz, 779-928 MHz
+        frequency_mhz: 433.92, // 433.92 MHz (ISM band)
+    },
+    serial_baud: 57600,
+    tx_interval_ms: 5000,
+};
 
+// ============================================================================
+// END OF CONFIGURATION
+// ============================================================================
+
+impl RadioConfig {
     const fn frequency_registers(&self) -> (u8, u8, u8) {
         let freq_hz = (self.frequency_mhz * 1_000_000.0) as u64;
         let freq_value = freq_hz * 65536 / 26_000_000;
@@ -97,20 +116,22 @@ fn transmit_pulse<E, S>(radio: &mut lowlevel::Cc1101<S>)
 fn main() -> ! {
     let dp = arduino_hal::Peripherals::take().unwrap();
     let pins = arduino_hal::pins!(dp);
-    let mut serial = arduino_hal::default_serial!(dp, pins, 57600);
+    let mut serial = arduino_hal::default_serial!(dp, pins, CONFIG.serial_baud);
 
     ufmt::uwriteln!(&mut serial, "Weather Station Starting...\r").unwrap_infallible();
+    ufmt::uwriteln!(&mut serial, "Frequency: {} MHz\r", CONFIG.radio.frequency_mhz as u32).unwrap_infallible();
+    ufmt::uwriteln!(&mut serial, "Baud Rate: {}\r", CONFIG.serial_baud).unwrap_infallible();
 
     let (spi, _) = arduino_hal::Spi::new(
         dp.SPI,
-        pins.d13.into_output(),
-        pins.d11.into_output(),
-        pins.d12.into_pull_up_input(),
-        pins.d10.into_output(),
+        pins.d13.into_output(),  // SCK
+        pins.d11.into_output(),  // MOSI
+        pins.d12.into_pull_up_input(),  // MISO
+        pins.d10.into_output(),  // SS (not used, but required by HAL)
         spi::Settings::default(),
     );
 
-    let cs = pins.d9.into_output();
+    let cs = pins.d9.into_output();  // CS pin for CC1101
     let spi_device = ExclusiveDevice::new_no_delay(spi, cs).unwrap();
 
     ufmt::uwriteln!(&mut serial, "SPI initialized\r").unwrap_infallible();
@@ -121,18 +142,16 @@ fn main() -> ! {
         loop {}
     }
 
-    ufmt::uwriteln!(&mut serial, "Configuring...\r").unwrap_infallible();
-
-    // Supported bands: 300-348 MHz, 387-464 MHz, 779-928 MHz
-    const CONFIG: RadioConfig = RadioConfig::new(433.500);
-    init_radio(&mut radio, &CONFIG, &mut serial);
+    ufmt::uwriteln!(&mut serial, "Configuring radio...\r").unwrap_infallible();
+    
+    init_radio(&mut radio, &CONFIG.radio, &mut serial);
 
     ufmt::uwriteln!(&mut serial, "Config done!\r").unwrap_infallible();
-    ufmt::uwriteln!(&mut serial, "Transmitting...\r").unwrap_infallible();
+    ufmt::uwriteln!(&mut serial, "Transmitting every {} ms\r", CONFIG.tx_interval_ms).unwrap_infallible();
 
     loop {
         ufmt::uwriteln!(&mut serial, "TX\r").unwrap_infallible();
         transmit_pulse(&mut radio);
-        arduino_hal::delay_ms(5000);
+        arduino_hal::delay_ms(CONFIG.tx_interval_ms);
     }
 }
