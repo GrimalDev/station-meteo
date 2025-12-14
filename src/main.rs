@@ -24,7 +24,7 @@ struct RadioConfig {
 const CONFIG: Config = Config {
     radio: RadioConfig {
         // Supported bands: 300-348 MHz, 387-464 MHz, 779-928 MHz
-        frequency_mhz: 433.92, // 433.92 MHz (ISM band)
+        frequency_mhz: 433.500,
     },
     serial_baud: 57600,
     tx_interval_ms: 5000,
@@ -79,6 +79,15 @@ fn init_radio<E, S>(radio: &mut lowlevel::Cc1101<S>,
     ).unwrap();
 
     radio.write_register(Config::PKTLEN, 255).unwrap();
+
+    // Configure GDO pins for useful monitoring:
+    // GDO0 (D2): Sync word sent/received - pulses high during packet transmission
+    // GDO2 (D3): Chip ready signal - low when chip is ready
+    radio.write_register(Config::IOCFG0, 0x06).unwrap();  // Sync word sent/received
+    radio.write_register(Config::IOCFG2, 0x29).unwrap();  // Chip ready (active low)
+
+    ufmt::uwriteln!(serial, "GDO0: Sync word indicator (D2)\r").ok();
+    ufmt::uwriteln!(serial, "GDO2: Chip ready signal (D3)\r").ok();
 }
 
 fn verify_radio<E, S>(radio: &mut lowlevel::Cc1101<S>,
@@ -143,7 +152,7 @@ fn main() -> ! {
     }
 
     ufmt::uwriteln!(&mut serial, "Configuring radio...\r").unwrap_infallible();
-    
+
     init_radio(&mut radio, &CONFIG.radio, &mut serial);
 
     ufmt::uwriteln!(&mut serial, "Config done!\r").unwrap_infallible();
