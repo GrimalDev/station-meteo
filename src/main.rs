@@ -24,7 +24,7 @@ struct RadioConfig {
 const CONFIG: Config = Config {
     radio: RadioConfig {
         // Supported bands: 300-348 MHz, 387-464 MHz, 779-928 MHz
-        frequency_mhz: 433.500,
+        frequency_mhz: 432.500,
     },
     serial_baud: 57600,
     tx_interval_ms: 5000,
