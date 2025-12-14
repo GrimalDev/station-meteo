@@ -5,7 +5,16 @@ authors = ["GrimalDev <bapt.grimaldi@gmail.com>", "ratataque"]
 edition = "2018"
 
 [dependencies]
-ruduino = {  git = "https://github.com/avr-rust/ruduino", branch = "master" }
+panic-halt = "0.2"
+ufmt = "0.2"
+cc1101 = { git = "https://github.com/dsvensson/cc1101", branch = "main" }
+embedded-hal = "1.0"
+embedded-hal-bus = "0.3"
+
+[dependencies.arduino-hal]
+git = "https://github.com/rahix/avr-hal"
+rev = "0f7fa4d01755f1985d95ed2015d5464a29154b05"
+features = ["arduino-uno"]
 
 [profile.dev]
 panic = "abort"
